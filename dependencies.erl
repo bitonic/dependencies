@@ -14,10 +14,10 @@
 
 -type(dependency_graph() :: [{#module_node{}, [#function_node{}]}]).
 
-%% -spec module_node(atom()) -> #module_node{}.
-%% -spec function_node(atom()) -> #function_node{}.
-%% -spec generate_graph(gb_tree()) -> dependency_graph().
-%% -spec split_modules([mfa()]) -> gb_tree().
+-spec module_node(atom()) -> #module_node{}.
+% -spec function_node(atom()) -> #function_node{}.
+-spec generate_graph(gb_tree()) -> dependency_graph().
+-spec split_modules([mfa()]) -> gb_tree().
 
 start([Filepath]) ->
     xref:start(s),
