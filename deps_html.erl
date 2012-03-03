@@ -102,7 +102,7 @@ deps_table({Ext, Int}) ->
 
 anchor(Anchor, Body) -> {a, [{name, Anchor}], Body}.
 
-link(Anchor, Body) -> {a, [{href, Anchor}], Body}.
+link(Anchor, Body) -> {a, [{href, "#" ++ Anchor}], Body}.
 
 html_page(Style, Body) ->
     {html, [{head, [{style, [Style]}]}, {body, Body}]}.
