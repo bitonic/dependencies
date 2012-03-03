@@ -52,7 +52,7 @@ modules(Graph) ->
     Modules = lists:flatmap(fun({MN, _FNs}) -> module(MN, Graph) end, Graph),
     Body = [modules_list(Graph) | Modules],
     Html = html_page(?PAGE_STYLE, Body),
-    xmerl:export_simple([Html], xmerl_xml).
+    xmerl:export_simple([Html], xmerl_html).
 
 modules(Graph, Filepath) ->
     deps_misc:write_to_file(modules(Graph), Filepath).
