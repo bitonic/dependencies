@@ -3,12 +3,12 @@
 -export([modules/1, modules/2]).
 
 -include("deps.hrl").
--import(deps_misc, [format/2, intercalate/2]).
+-import(deps_misc, [format/2, intercalate/2, term_to_string/1]).
 
 -spec module(#module_node{}, deps_graph()) -> string().
 -spec modules(deps_graph()) -> string().
 -spec modules(deps_graph(), string()) -> 'ok'.
--spec link(string(), string(), string()) -> string().
+-spec link(string(), string()) -> string().
 -spec html_page(string(), string()) -> string().
 -spec table(string(), list(), list()) -> string().
 
@@ -30,15 +30,26 @@
         "}"
         ".deps td {"
         "  border: 1px solid black;"
-        "  padding: 0.5em 0;"
+        "  padding: 0.5em;"
         "  width: 50%;"
+        "}"
+        "ul {"
+        "  list-style: none;"
+        "  padding: 0;"
+        "  margin: 0;"
         "}"
         ).
 
 
+modules_list(Graph) ->
+    ul(lists:map(
+         fun ({#module_node { name = Name }, _FNs}) ->
+                 module_link(Name)
+         end, Graph)).
+
 deps_table({Ext, Int}) ->
     HExt = ul(lists:map(fun deps_misc:term_to_string/1, Ext)),
-    HInt = ul(lists:map(fun deps_misc:term_to_string/1, Int)),
+    HInt = ul(lists:map(fun module_link/1, Int)),
     table("deps",
           ["External", "Internal"],
           [[HExt, HInt]]).
@@ -57,20 +68,33 @@ module(#module_node { name = Name,
                 end,
     ToSep = Partition(To),
     FromSep = Partition(From),
-    format("<h2>~p</h2><br/>", [Name]) ++
+    module_heading(Name) ++
         table("module",
               ["From", "To"],
-              [[deps_table(FromSep), deps_table(ToSep)]]).
+              [[deps_table(FromSep), deps_table(ToSep)]]) ++
+        "<hr>".
+
+module_heading(Module) ->
+    anchor(term_to_string(Module), format("<h2>~p</h2><br/>", [Module])).
+
+module_link(Module) ->
+    S = term_to_string(Module),
+    link(S, S).
 
 modules(Graph) ->
-    html_page(?PAGE_STYLE,
-              lists:flatmap(fun({MN, _FNs}) -> module(MN, Graph) end, Graph)).
+    Body =
+        modules_list(Graph) ++
+        lists:flatmap(fun({MN, _FNs}) -> module(MN, Graph) end, Graph),
+    html_page(?PAGE_STYLE, Body).
 
 modules(Graph, Filepath) ->
     deps_misc:write_to_file(modules(Graph), Filepath).
 
-link(Href, Anchor, Body) ->
-    format("<a href=\"~s#~s\">~s</a>", [Href, Anchor, Body]).
+anchor(Anchor, Body) ->
+    format("<a name=\"~s\">~s</a>", [Anchor, Body]).
+
+link(Anchor, Body) ->
+    format("<a href=\"#~s\">~s</a>", [Anchor, Body]).
 
 html_page(Style, Body) ->
     T = "<html>"
