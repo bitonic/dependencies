@@ -5,7 +5,7 @@ BASIC_PLT=basic.plt
 
 all: $(TARGETS)
 
-dyalize: $(BEAM_TARGETS) $(BASIC_PLT)
+dialyze: $(BEAM_TARGETS) $(BASIC_PLT)
 	dialyzer --plt basic.plt --no_native --fullpath -Wrace_conditions $(TARGETS)
 
 $(BASIC_PLT): $(BEAM_TARGETS)

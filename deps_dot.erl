@@ -8,6 +8,17 @@
 -spec modules(deps_graph()) -> string().
 -spec modules(deps_graph(), string()) -> 'ok'.
 
+modules(Graph) ->
+    Names = lists:map(
+              fun ({#module_node {name = Name}, _}) -> Name end,
+              Graph),
+    "digraph callraph {~n" ++ modules1(Graph, label(Names)) ++ "}".
+
+modules(Graph, Filepath) ->
+    deps_misc:write_to_file(modules(Graph), Filepath).
+
+%% ----
+
 modules1([], _Labels) ->
     "";
 modules1([{#module_node { name = Name,
@@ -28,14 +39,6 @@ modules1([{#module_node { name = Name,
           end, To) ++
         modules1(Rest, Labels).
 
-modules(Graph) ->
-    Names = lists:map(
-              fun ({#module_node {name = Name}, _}) -> Name end,
-              Graph),
-    "digraph callraph {~n" ++ modules1(Graph, label(Names)) ++ "}".
-
-modules(Graph, Filepath) ->
-    deps_misc:write_to_file(modules(Graph), Filepath).
 
 label(Graph) ->
     {_, Labels} = lists:foldl(

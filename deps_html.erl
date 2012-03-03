@@ -5,19 +5,27 @@
 -include("deps.hrl").
 -import(deps_misc, [format/2, intercalate/2, term_to_string/1]).
 
--spec module(#module_node{}, deps_graph()) -> string().
--spec modules(deps_graph()) -> string().
--spec modules(deps_graph(), string()) -> 'ok'.
--spec link(string(), string()) -> string().
--spec html_page(string(), string()) -> string().
--spec table(string(), list(), list()) -> string().
+-type(html() :: string()).
+
+-spec modules(deps_graph()) -> html().
+-spec modules(deps_graph(), html()) -> 'ok'.
+-spec modules_list(deps_graph()) -> html().
+-spec module_link(atom()) -> html().
+-spec module(#module_node{}, deps_graph()) -> html().
+-spec module_heading(atom()) -> html().
+-spec deps_table({list(atom()), list(atom())}) -> html().
+-spec anchor(string(), string()) -> html().
+-spec link(string(), string()) -> html().
+-spec html_page(string(), html()) -> html().
+-spec table(string(), list(string()), list(list(html()))) -> html().
+-spec ul(list(html())) -> html().
 
 -define(PAGE_STYLE,
         "td {"
         "  vertical-align: top;"
         "}"
         ".module {"
-        "  width: 60em;"
+        "  width: 80%;"
         "  padding: 0;"
         "}"
         ".module td {"
@@ -40,6 +48,16 @@
         "}"
         ).
 
+modules(Graph) ->
+    Body =
+        modules_list(Graph) ++
+        lists:flatmap(fun({MN, _FNs}) -> module(MN, Graph) end, Graph),
+    html_page(?PAGE_STYLE, Body).
+
+modules(Graph, Filepath) ->
+    deps_misc:write_to_file(modules(Graph), Filepath).
+
+%% ----
 
 modules_list(Graph) ->
     ul(lists:map(
@@ -47,12 +65,9 @@ modules_list(Graph) ->
                  module_link(Name)
          end, Graph)).
 
-deps_table({Ext, Int}) ->
-    HExt = ul(lists:map(fun deps_misc:term_to_string/1, Ext)),
-    HInt = ul(lists:map(fun module_link/1, Int)),
-    table("deps",
-          ["External", "Internal"],
-          [[HExt, HInt]]).
+module_link(Module) ->
+    S = term_to_string(Module),
+    link(S, S).
 
 module(#module_node { name = Name,
                       to = To,
@@ -77,18 +92,12 @@ module(#module_node { name = Name,
 module_heading(Module) ->
     anchor(term_to_string(Module), format("<h2>~p</h2><br/>", [Module])).
 
-module_link(Module) ->
-    S = term_to_string(Module),
-    link(S, S).
-
-modules(Graph) ->
-    Body =
-        modules_list(Graph) ++
-        lists:flatmap(fun({MN, _FNs}) -> module(MN, Graph) end, Graph),
-    html_page(?PAGE_STYLE, Body).
-
-modules(Graph, Filepath) ->
-    deps_misc:write_to_file(modules(Graph), Filepath).
+deps_table({Ext, Int}) ->
+    HExt = ul(lists:map(fun deps_misc:term_to_string/1, Ext)),
+    HInt = ul(lists:map(fun module_link/1, Int)),
+    table("deps",
+          ["External", "Internal"],
+          [[HExt, HInt]]).
 
 anchor(Anchor, Body) ->
     format("<a name=\"~s\">~s</a>", [Anchor, Body]).

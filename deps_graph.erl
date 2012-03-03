@@ -15,6 +15,25 @@
 
 start([Filepath]) -> new(Filepath).
 
+new(Filepath) ->
+    xref:start(s),
+    xref:add_application(s, Filepath),
+    {ok, Functions} = xref:q(s, "F"),
+    Modules = split_modules(Functions),
+    Graph = deps_graph(Modules),
+    xref:stop(s),
+    Graph.
+
+lookup(_M, []) ->
+    none;
+lookup(M, [{#module_node { name = M1 }, _FN} = N | Graph]) ->
+    case M =:= M1 of
+        true  -> {value, N};
+        false -> lookup(M, Graph)
+    end.
+
+%% ----
+
 split_modules(Functions) ->
     lists:foldl(
       fun({M, _, _} = F, Modules) ->
@@ -52,20 +71,3 @@ deps_graph(Modules) ->
                       Nodes = lists:map(fun function_node/1, MFuns),
                       {module_node(M), Nodes}
               end, gb_trees:to_list(Modules)).
-
-new(Filepath) ->
-    xref:start(s),
-    xref:add_application(s, Filepath),
-    {ok, Functions} = xref:q(s, "F"),
-    Modules = split_modules(Functions),
-    Graph = deps_graph(Modules),
-    xref:stop(s),
-    Graph.
-
-lookup(_M, []) ->
-    none;
-lookup(M, [{#module_node { name = M1 }, _FN} = N | Graph]) ->
-    case M =:= M1 of
-        true  -> {value, N};
-        false -> lookup(M, Graph)
-    end.
