@@ -5,20 +5,20 @@
 -include("deps.hrl").
 -import(deps_misc, [format/2, intercalate/2, term_to_string/1]).
 
--type(html() :: string()).
+%% -type(html() :: string()).
 
--spec modules(deps_graph()) -> html().
--spec modules(deps_graph(), html()) -> 'ok'.
--spec modules_list(deps_graph()) -> html().
--spec module_link(atom()) -> html().
--spec module(#module_node{}, deps_graph()) -> html().
--spec module_heading(atom()) -> html().
--spec deps_table({list(atom()), list(atom())}) -> html().
--spec anchor(string(), string()) -> html().
--spec link(string(), string()) -> html().
--spec html_page(string(), html()) -> html().
--spec table(string(), list(string()), list(list(html()))) -> html().
--spec ul(list(html())) -> html().
+%% -spec modules(deps_graph()) -> html().
+%% -spec modules(deps_graph(), html()) -> 'ok'.
+%% -spec modules_list(deps_graph()) -> html().
+%% -spec module_link(atom()) -> html().
+%% -spec module(#module_node{}, deps_graph()) -> html().
+%% -spec module_heading(atom()) -> html().
+%% -spec deps_table({list(atom()), list(atom())}) -> html().
+%% -spec anchor(string(), string()) -> html().
+%% -spec link(string(), string()) -> html().
+%% -spec html_page(string(), html()) -> html().
+%% -spec table(string(), list(string()), list(list(html()))) -> html().
+%% -spec ul(list(html())) -> html().
 
 -define(PAGE_STYLE,
         "td {"
@@ -49,10 +49,10 @@
         ).
 
 modules(Graph) ->
-    Body =
-        modules_list(Graph) ++
-        lists:flatmap(fun({MN, _FNs}) -> module(MN, Graph) end, Graph),
-    html_page(?PAGE_STYLE, Body).
+    Modules = lists:flatmap(fun({MN, _FNs}) -> module(MN, Graph) end, Graph),
+    Body = [modules_list(Graph) | Modules],
+    Html = html_page(?PAGE_STYLE, Body),
+    xmerl:export_simple([Html], xmerl_xml).
 
 modules(Graph, Filepath) ->
     deps_misc:write_to_file(modules(Graph), Filepath).
@@ -62,12 +62,12 @@ modules(Graph, Filepath) ->
 modules_list(Graph) ->
     ul(lists:map(
          fun ({#module_node { name = Name }, _FNs}) ->
-                 module_link(Name)
+                 [module_link(Name)]
          end, Graph)).
 
 module_link(Module) ->
     S = term_to_string(Module),
-    link(S, S).
+    link(S, [S]).
 
 module(#module_node { name = Name,
                       to = To,
@@ -83,50 +83,41 @@ module(#module_node { name = Name,
                 end,
     ToSep = Partition(To),
     FromSep = Partition(From),
-    module_heading(Name) ++
-        table("module",
-              ["From", "To"],
-              [[deps_table(FromSep), deps_table(ToSep)]]) ++
-        "<hr>".
+    [{hr, []},
+     module_heading(Name),
+     table([{class, "module"}],
+           ["From", "To"],
+           [[[deps_table(FromSep)], [deps_table(ToSep)]]])].
 
 module_heading(Module) ->
-    anchor(term_to_string(Module), format("<h2>~p</h2><br/>", [Module])).
+    S = term_to_string(Module),
+    anchor(S, [{h2, [S]}]).
 
 deps_table({Ext, Int}) ->
-    HExt = ul(lists:map(fun deps_misc:term_to_string/1, Ext)),
-    HInt = ul(lists:map(fun module_link/1, Int)),
-    table("deps",
+    HExt = ul(lists:map(single(fun deps_misc:term_to_string/1), Ext)),
+    HInt = ul(lists:map(single(fun module_link/1), Int)),
+    table([{class, "deps"}],
           ["External", "Internal"],
-          [[HExt, HInt]]).
+          [[[HExt], [HInt]]]).
 
-anchor(Anchor, Body) ->
-    format("<a name=\"~s\">~s</a>", [Anchor, Body]).
+anchor(Anchor, Body) -> {a, [{name, Anchor}], Body}.
 
-link(Anchor, Body) ->
-    format("<a href=\"#~s\">~s</a>", [Anchor, Body]).
+link(Anchor, Body) -> {a, [{href, Anchor}], Body}.
 
 html_page(Style, Body) ->
-    T = "<html>"
-        "<head>"
-        "<style>~s</style>"
-        "</head>"
-        "<body>~s</body>"
-        "</html>",
-    format(T, [Style, Body]).
+    {html, [{head, [{style, [Style]}]}, {body, Body}]}.
 
-table(Class, Titles, Rows) ->
-    HTitles = "<tr>" ++ lists:flatmap(fun (_) -> "<th>~s</th>" end, Titles) ++ "</tr>",
-    HRows =
-        lists:flatmap(
-          fun (R) -> "<tr>" ++
-                         lists:flatmap(fun (_) -> "<td>~s</td>" end, R) ++
-                         "</tr>"
-          end, Rows),
-    format("<table class=\"~s\">", [Class]) ++
-        format(HTitles ++ HRows, Titles ++ lists:concat(Rows)) ++
-        "</table>".
+table(Attrs, Titles, Rows) ->
+    HTitles = {tr, Attrs, lists:map(fun (T) -> {th, [T]} end, Titles)},
+    HRows = lists:map(fun (R) ->
+                              {tr, lists:map(fun (C) -> {td, C} end, R)}
+                      end, Rows),
+    {table, Attrs, [HTitles | HRows]}.
 
-ul(Els) ->
-    "<ul>" ++
-        lists:flatmap(fun (El) -> "<li>" ++ El ++ "</li>" end, Els)
-        ++ "</ul>".
+ul(Lis) -> ul([], Lis).
+
+ul(Attrs, Lis) ->
+    {ul, Attrs, lists:map(fun (Li) -> {li, Li} end, Lis)}.
+
+single(F) ->
+    fun (X) -> [F(X)] end.
