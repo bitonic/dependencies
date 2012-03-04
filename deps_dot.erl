@@ -10,7 +10,7 @@
 
 modules(Graph, Exclude) ->
     "digraph callraph {~n"
-        "concentrate=true~n" ++
+        "\tconcentrate=true;~n" ++
         lists:append(modules1(Graph, Exclude, Graph)) ++ "}".
 
 modules(Graph, Exclude, Filepath) ->
@@ -29,9 +29,9 @@ modules1([{#module_node {name = Name, to = To}, _} | Rest], Exclude, Graph) ->
               fun(M) ->
                       %% We don't graph external modules
                       case lists:member(M, Exclude) orelse
-                  deps_graph:lookup(M, Graph) =:= none of
+                          deps_graph:lookup(M, Graph) =:= none of
                           true  -> "";
-                          false -> format("\t~p -> ~p~n", [Name, M])
+                          false -> format("\t~p -> ~p;~n", [Name, M])
                       end
               end, To) ++ modules1(Rest, Exclude, Graph)
     end.

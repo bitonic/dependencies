@@ -12,7 +12,7 @@ $(BASIC_PLT): $(BEAM_TARGETS)
 	if [ -f $@ ]; then \
 	    touch $@; \
 	else \
-	    dialyzer --output_plt $@ --build_plt --apps stdlib; \
+	    dialyzer --output_plt $@ --build_plt --apps stdlib xmerl; \
 	fi
 
 ERLC_OPTS= -Wall -v +debug_info
